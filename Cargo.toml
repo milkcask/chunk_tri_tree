@@ -1,0 +1,39 @@
+[package]
+name = "chunk-tri-tree"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.88"
+description = "A sparse binary triangle tree (RTIN) for adaptive terrain tiles, with a shared reference-counted vertex pool and no_std support."
+license = "MIT OR Apache-2.0"
+repository = "https://github.com/milkcask/chunk-tri-tree"
+documentation = "https://docs.rs/chunk-tri-tree"
+readme = "README.md"
+keywords = ["terrain", "rtin", "triangle", "lod", "mesh"]
+categories = ["game-development", "graphics", "data-structures", "no-std"]
+exclude = [".github/"]
+
+[features]
+default = ["std", "node64"]
+# Enable the 64-bit `NodeId64` node id (depths up to 63) and its
+# `NodeIdLike` impl. On by default; disable to drop it and key trees on
+# `NodeId` (depth 31) only.
+node64 = []
+# Native std math (fastest, platform-dependent results).
+std = ["glam/std"]
+# Force libm math on *every* build, incl. std, for bit-reproducible
+# cross-platform results. Not required for no_std.
+libm = ["dep:libm", "glam/libm"]
+# Std-agnostic fallback: uses libm only when std is unavailable, so it is
+# inert (native math) on std builds. Pick this for no_std terrain builds —
+# it also pulls in hashbrown for the tree's HashMap/HashSet storage.
+nostd-libm = ["dep:libm", "dep:hashbrown", "glam/nostd-libm"]
+
+[dependencies]
+glam = { version = "0.30", default-features = false }
+# Scalar float math for libm / no_std builds (see `fmath` in lib.rs).
+libm = { version = "0.2", optional = true }
+# no_std replacement for std::collections::{HashMap, HashSet}.
+hashbrown = { version = "0.15", optional = true }
+
+[lib]
+path = "src/lib.rs"

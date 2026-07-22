@@ -1,0 +1,102 @@
+name: Rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: ["*"]
+  merge_group:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  # Host builds + test suite, one parallel job per (OS × feature set).
+  # These all keep `std` on so the tests can actually run.
+  test:
+    name: test / ${{ matrix.os }} / ${{ matrix.features.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        features:
+          - name: default
+            flags: ""
+          - name: std-only
+            flags: "--no-default-features --features std"
+          - name: libm-forced
+            flags: "--features libm"
+          - name: all-features
+            flags: "--all-features"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test ${{ matrix.features.flags }}
+
+  # `no_std` compile checks, one parallel job per (bare-metal target × feature
+  # set). Bare-metal targets have no test harness, so these build the lib only.
+  no-std:
+    name: no_std / ${{ matrix.target }} / ${{ matrix.features.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [x86_64-unknown-none, thumbv7em-none-eabihf]
+        features:
+          - name: nostd-libm
+            flags: "--no-default-features --features nostd-libm"
+          - name: nostd-libm+node64
+            flags: "--no-default-features --features nostd-libm,node64"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo build --lib --target ${{ matrix.target }} ${{ matrix.features.flags }}
+
+  # Clippy across the representative feature sets, in parallel. `--all-targets`
+  # (tests/benches) needs `std`, so the no_std set lints the lib only.
+  clippy:
+    name: clippy / ${{ matrix.features.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        features:
+          - name: default
+            args: "--all-targets"
+          - name: all-features
+            args: "--all-features --all-targets"
+          - name: no_std
+            args: "--no-default-features --features nostd-libm --lib"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo clippy ${{ matrix.features.args }} -- -D warnings
+
+  fmt:
+    name: rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - run: cargo fmt --check
+
+  # Minimum supported Rust version. Edition 2024 + let-chains + `i32::cast_signed`
+  # put the floor at 1.88; bump this and the note in the README together.
+  msrv:
+    name: msrv (1.88.0)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.88.0
+      - run: cargo check --all-features
