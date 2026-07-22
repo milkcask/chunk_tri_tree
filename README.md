@@ -1,4 +1,4 @@
-# chunk-tri-tree
+# 📐🌴 chunk-tri-tree
 
 A sparse binary triangle tree for adaptive terrain tiles.
 

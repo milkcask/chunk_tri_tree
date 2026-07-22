@@ -1,3 +1,5 @@
+//! # chunk-tri-tree
+//!
 //! A sparse binary triangle tree for adaptive terrain tiles.
 //!
 //! Each [`ChunkTriTree`] covers one square tile, split along a diagonal into
@@ -30,7 +32,7 @@
 //! for math; the `libm` / `nostd-libm` features select the math backend (e.g.
 //! `libm` for bit-reproducible cross-platform results).
 //!
-//! # `no_std`
+//! ## `no_std`
 //!
 //! The crate is `no_std`-capable: build with `--no-default-features --features
 //! nostd-libm` to drop the `std` dependency. Heap allocation is still required
